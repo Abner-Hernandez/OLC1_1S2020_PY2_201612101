@@ -1,0 +1,17 @@
+{
+  "name": "CLient",
+  "version": "1.0.0",
+  "description": "",
+  "main": "jquery-1.7.2.min.js",
+  "dependencies": {
+    "jquery": "^3.5.0",
+    "nodemon": "^2.0.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "dev": "go run index.go"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
