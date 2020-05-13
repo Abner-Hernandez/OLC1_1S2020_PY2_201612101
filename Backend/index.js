@@ -16,6 +16,11 @@ app.use(cors({origin: 'http://localhost:8000'}))
 
 app.post('/compilar',(req,res) => {
     console.log(req.body);
+    
+    global.globerrores = [];
+    global.globresults = [];
+    global.globresultsFVC = [];
+
     if(globentradas.length > 1)
         globentradas = [];
 

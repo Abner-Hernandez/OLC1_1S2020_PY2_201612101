@@ -5,10 +5,12 @@ var aux_cont = 0 ;
 var varsclass = [];
 var varsfunction = [];
 var vars = [];
+var returns = [];
 
 var varsclass1 = [];
 var varsfunction1 = [];
 var vars1 = [];
+var returns1 = [];
 
 var errores1 = [];
 var errores2 = [];
@@ -102,7 +104,7 @@ function agregar() {
     var a=document.createElement("a");
     a.setAttribute('id','a'+x);
     a.setAttribute('href', 'javascript:index("pestanas","pestana'+x+'")');
-    a.text='pestana'+x;
+    a.text='pestaña_'+x;
     li.appendChild(a);
     lu.appendChild(li);
     index("pestanas","pestana"+x);
@@ -135,7 +137,6 @@ function agregar() {
 }
 
 function quitar(){
-    dd();
     try{
         var lu=document.getElementById("lista");
         lu.removeChild(document.getElementById(get_vent().replace("textarea","pestana")));
@@ -186,6 +187,8 @@ function DescargarArchivo(){
     var ta=document.getElementById(get_vent());
     var contenido=ta.value;//texto de vent actual
 
+    download("file_"+get_vent(), contenido);
+    /*
     //formato para guardar el archivo
     var hoy=new Date();
     var dd=hoy.getDate();
@@ -211,8 +214,25 @@ function DescargarArchivo(){
             window.URL.revokeObjectURL(url);  
         },0); 
     }
+    */
 }
 
+function download(filename, text) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+  
+    element.style.display = 'none';
+    document.body.appendChild(element);
+  
+    element.click();
+  
+    document.body.removeChild(element);
+}
+
+/* Peticiones y funcionalidad */
+
+var data1, data2 = null;
 function send_request()
 {
     var ta=document.getElementById(get_vent());
@@ -222,7 +242,39 @@ function send_request()
 
     $.post(url,{code: contenido}, function(data, status){
         if(status.toString() == "success"){
-            agregar_ast(data.AST);
+
+            if(data2 != null)
+            {
+                data1 = null;
+                data2 = null;
+                varsclass = [];
+                varsfunction = [];
+                vars = [];
+                returns = [];
+                
+                varsclass1 = [];
+                varsfunction1 = [];
+                vars1 = [];
+                returns1 = [];
+                
+                errores1 = [];
+                errores2 = [];
+                reportsclass = "";
+                reportsfunction = "";
+                reportsvars = "";            
+            }
+
+            if(data1 == null)
+            {
+                data1 = data;
+                agregar_ast(data.AST);
+            }
+            else
+            {
+                data2 = data;
+                llenar_arreglos(data1.VARS, data2.VARS);
+            }
+            
         }else{
             alert("Error en la conexion:" + status)
         }
@@ -250,6 +302,10 @@ function agregar_ast(add_ast)
     }
 }
 
+function replaceAll(str, find, replace) {
+    return str.replace(new RegExp(find, 'g'), replace);
+  }
+
 function llenar_arreglos(first, second)
 {
     if(first.length > 0 && second.length > 0)
@@ -258,19 +314,29 @@ function llenar_arreglos(first, second)
         {
             if(first[i].TIPO == "class")
             {
-                varsclass.push({TIPO: first[i].TIPO, VALUE: first[i].VALUE, PARENT: first[i].PARENT});
+                //var value = first[i].VALUE.replace("<li>", "");
+                var value = replaceAll(first[i].VALUE, "<li>", " ");
+                value = replaceAll(value, "</li>", " ");
+                value = replaceAll(value, "\n", "");
+                varsclass.push({TIPO: first[i].TIPO, VALUE: value, PARENT: first[i].PARENT});
             }else if(first[i].TIPO == "funcion")
             {
-                var value = first[i].VALUE.replace("<li>", "");
-                value = value.replace("</li>", "");
-                value = value.replace("\n", "");
-                varsfunction.push({TIPO: first[i].TIPO, VALUE: value, PARENT: first[i].PARENT});
+                var value = replaceAll(first[i].VALUE, "<li>", " ");
+                value = replaceAll(value, "</li>", " ");
+                value = replaceAll(value, "\n", "");
+                varsfunction.push({TIPO: first[i].TIPO, VALUE: value, PARENT: first[i].PARENT, NOMBRE: second[i].NOMBRE});
             }else if(first[i].TIPO == "variable")
             {
-                var value = first[i].VALUE.replace("<li>", "");
-                value = value.replace("</li>", "");
-                value = value.replace("\n", "");
+                var value = replaceAll(first[i].VALUE, "<li>", " ");
+                value = replaceAll(value, "</li>", " ");
+                value = replaceAll(value, "\n", "");
                 vars.push({TIPO: first[i].TIPO, VALUE: value, PARENT: first[i].PARENT});
+            }else if(first[i].TIPO == "return")
+            {
+                var value = replaceAll(first[i].VALUE, "<li>", " ");
+                value = replaceAll(value, "</li>", " ");
+                value = replaceAll(value, "\n", "");
+                returns.push({TIPO: first[i].TIPO, VALUE: value, PARENT: first[i].PARENT});
             }
         }
 
@@ -278,19 +344,28 @@ function llenar_arreglos(first, second)
         {
             if(second[i].TIPO == "class")
             {
-                varsclass1.push({TIPO: second[i].TIPO, VALUE: second[i].VALUE, PARENT: second[i].PARENT});
+                var value = replaceAll(second[i].VALUE, "<li>", " ");
+                value = replaceAll(value, "</li>", " ");
+                value = replaceAll(value, "\n", "");
+                varsclass1.push({TIPO: second[i].TIPO, VALUE: value, PARENT: second[i].PARENT});
             }else if(second[i].TIPO == "funcion")
             {
-                var value = second[i].VALUE.replace("<li>", "");
-                value = value.replace("</li>", "");
-                value = value.replace("\n", "");
+                var value = replaceAll(second[i].VALUE, "<li>", " ");
+                value = replaceAll(value, "</li>", " ");
+                value = replaceAll(value, "\n", "");
                 varsfunction1.push({TIPO: second[i].TIPO, VALUE: value, PARENT: second[i].PARENT, NOMBRE: second[i].NOMBRE});
             }else if(second[i].TIPO == "variable")
             {
-                var value = second[i].VALUE.replace("<li>", "");
-                value = value.replace("</li>", "");
-                value = value.replace("\n", "");
+                var value = replaceAll(second[i].VALUE, "<li>", " ");
+                value = replaceAll(value, "</li>", " ");
+                value = replaceAll(value, "\n", "");
                 vars1.push({TIPO: second[i].TIPO, VALUE: value, PARENT: second[i].PARENT});
+            }else if(second[i].TIPO == "return")
+            {
+                var value = replaceAll(second[i].VALUE, "<li>", " ");
+                value = replaceAll(value, "</li>", " ");
+                value = replaceAll(value, "\n", "");
+                returns1.push({TIPO: second[i].TIPO, VALUE: value, PARENT: second[i].PARENT});
             }
         }
         //send to create reports
@@ -302,7 +377,8 @@ function llenar_arreglos(first, second)
             {
                 if(vars1[j].VALUE == vars[i].VALUE && vars1[j].PARENT == vars[i].PARENT)
                 {
-                    add_to_table_rc(vars2[j].VALUE, vars[i].VALUE);
+                    add_to_table_rv(vars1[j].VALUE + " " + vars1[j].PARENT, vars[i].VALUE + " " + vars[j].PARENT);
+                    break;
                 }
                 //realizo la comparacion si son iguales las clases
             }
@@ -310,34 +386,101 @@ function llenar_arreglos(first, second)
         }
         for(var i = 0; i < varsfunction.length ; i++)
         {
-            for(var j = 0; j < vars.length ; j++)
+            if(find_and_compare_function(varsfunction[i].NOMBRE, i))
             {
-                if(exixte_parent(vars[j].VALUE, varsfunction[i].NOMBRE ))
-                {
-                    for(var k = 0; k < vars1.length ; k++)
-                    {
-                        if(vars1[k].VALUE == vars[j].VALUE && vars1[k].PARENT == vars[j].PARENT)
-                        {
-                            add_to_table_rc(vars2[j].VALUE, vars[i].VALUE);
-                        }
-                        //realizo la comparacion si son iguales las clases
-                    }
-                }
-    
+                add_to_table_rf(varsfunction[i].VALUE + " " + varsfunction[i].PARENT, varsfunction[i].VALUE + " " + varsfunction[i].PARENT);
+                break;
             }
 
         }
+        for (var i = 0 ; i < varsclass.length ; i++)
+        {
+            for (var j = 0 ; j < varsclass1.length ; j++)
+            {
+                if(varsclass[i].VALUE == varsclass1[j].VALUE)
+                {
+                    var number =  get_number_equal(varsclass[i].VALUE);
+                    if(number > 0)
+                        add_to_table_rc(varsclass[j].VALUE + " " + varsclass[j].PARENT + "No. Funciones " + number, varsclass1[i].VALUE + " " + varsclass1[j].PARENT + "No. Funciones " + number);
+                    break;
+                }
+            }
+        }
     }else
         return;
+}
+
+function get_number_equal(nombre)
+{
+    var count = 0;
+    for(var j = 0; j < varsfunction.length ; j++)
+    {
+        //exixte_parent(vars[j].VALUE, varsfunction[i].NOMBRE )
+        if(exixte_parent(varsfunction[j].PARENT, nombre ))
+        {
+            var aux = count;
+            for(var k = 0; k < varsfunction1.length ; k++)
+            {
+                if(varsfunction1[k].VALUE == varsfunction[j].VALUE)
+                    count++;
+                //realizo la comparacion si son iguales las clases
+            }
+            if(aux == count)
+                return 0;
+        }
+
+    }
+    return count;
+}
+
+function find_and_compare_function(name, pos)
+{
+    for(var k = 0; k < varsfunction1.length ; k++)
+    {
+        if(varsfunction1[k].VALUE == varsfunction[pos].VALUE)
+        {
+            if(find_return(name))
+                return true;
+            else
+                return false;
+        }
+        //realizo la comparacion si son iguales las clases
+    }
+    return false;
+}
+
+function find_return(name)
+{
+    var stack = [];
+    for(var i = 0; i < returns.length; i++)
+    {
+        if(exixte_parent(returns[i].PARENT, name))
+        {
+            stack.push(returns[i]);
+        }
+    }
+    for(var j= 0 ; j < stack.length ; j++)
+    {
+        var aux = stack.shift();
+        for(var i = 0; i < returns1.length; i++)
+        {
+            if(aux.PARENT == returns1[j].PARENT && aux.VALUE == returns1[j].VALUE)
+                aux = "";
+        }
+        if(aus != "")
+            return false;
+    }
+    if(stack.length == 0)
+        return true;
 }
 
 function exixte_parent(str, str2)
 {
     for(var i = 0 ; i < str.length ; i++)
     {
-        if( i + str2.length <= str.length && str.substring(i, str2.length) == str2)
+        if( i + str2.length <= str.length && str.substring(i, i + str2.length) == str2)
         {
-            return true; break;
+            return true;
         }
     }
     return false;
@@ -345,17 +488,42 @@ function exixte_parent(str, str2)
 
 function crear_reporte_clases()
 {
-
-}
-
-function crear_reporte_variables()
-{
-
+    if(reportsclass != "")
+    {
+        reportsclass +="</table>\n";
+        download("reporte_copia_clase.html", reportsclass);
+        reportsclass = "";
+    }
 }
 
 function crear_reporte_funciones()
 {
+    if(reportsfunction != "")
+    {
+        reportsfunction +="</table>\n";
+        download("reporte_copia_Function.html", reportsfunction);
+        reportsfunction = "";
+    }
+}
 
+function crear_reporte_variables()
+{
+    if(reportsvars != "")
+    {
+        reportsvars +="</table>\n";
+        download("reporte_copia_variables.html", reportsvars);
+        reportsvars = "";
+    }
+}
+
+function crear_reporte_errores(errores)
+{
+    var rep_error = "<table>\n<tr>\n<th>Tipo Error</th>\n<th>Columna</th>\n<th>Linea</th>\n<th>Descripcion</th>\n</tr>\n";
+    for(var i = 0 ; i < errores.length ; i++)
+    {
+        rep_error += "<tr>\n<td>"+ errores[i].TYPE +"</td>\n<td>"+ errores[i].COLUMN +"</td>\n"+"</td>\n<td>"+ errores[i].ROW +"</td>\n"+"</td>\n<td>"+ errores[i].VALUE +"</td>\n";
+    }
+    rep_error += "</table>\n";
 }
 
 
@@ -364,9 +532,7 @@ function add_to_table_rc(dato_1, dato_2)
     if(reportsclass == ""){
         reportsclass +="<table>\n<tr>\n<th>Analisis 1</th>\n<th>Analisis 2</th>\n</tr>\n";
     }
-    else{
-        reportsclass += "<tr>\n<td>"+ dato_1 +"</td>\n<td>"+ dato_2 +"</td>\n"
-    }
+    reportsclass += "<tr>\n<td>"+ dato_1 +"</td>\n<td>"+ dato_2 +"</td>\n";
     //</table>
 }
 
@@ -375,19 +541,25 @@ function add_to_table_rf(dato_1, dato_2)
     if(reportsfunction == ""){
         reportsfunction +="<table>\n<tr>\n<th>Analisis 1</th>\n<th>Analisis 2</th>\n</tr>\n";
     }
-    else{
-        reportsfunction += "<tr>\n<td>"+ dato_1 +"</td>\n<td>"+ dato_2 +"</td>\n"
-    }
+    reportsfunction += "<tr>\n<td>"+ dato_1 +"</td>\n<td>"+ dato_2 +"</td>\n";
     //</table>
 }
 
-function add_to_table_rf(dato_1, dato_2)
+function add_to_table_rv(dato_1, dato_2)
 {
     if(reportsvars == ""){
         reportsvars +="<table>\n<tr>\n<th>Analisis 1</th>\n<th>Analisis 2</th>\n</tr>\n";
     }
-    else{
-        reportsvars += "<tr>\n<td>"+ dato_1 +"</td>\n<td>"+ dato_2 +"</td>\n"
-    }
+    reportsvars += "<tr>\n<td>"+ dato_1 +"</td>\n<td>"+ dato_2 +"</td>\n";
     //</table>
+}
+
+function reportes()
+{
+    if(aux_cont >= 2)
+    {
+        crear_reporte_variables();
+        crear_reporte_funciones();
+        crear_reporte_clases();
+    }
 }

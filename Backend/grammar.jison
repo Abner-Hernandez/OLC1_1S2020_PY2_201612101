@@ -1,6 +1,7 @@
 %{
 	const Node = require('./clases/Node');
 	const Error = require('./clases/Error');
+     temp = [];
 %}
 
 /* Definición Léxica */
@@ -9,6 +10,9 @@
 %options case-sensitive
 
 %%
+
+"//".*                              // comentario simple línea
+[/][*][^*]*[*]+([^/*][^*]*[*]+)*[/] // comentario multiple líneas
 
 //SIMBOLOS
 //incremento y decremento
@@ -47,8 +51,8 @@
 
 //logicos
 "!"              return 'not';
-"&"              return 'and';
-"|"              return 'or';
+"&&"              return 'and';
+"||"              return 'or';
 
 
 
@@ -57,6 +61,7 @@
 "int"                   return 'resinteger';
 "double"                return 'resdouble';
 "char"                  return 'reschar';
+"String"                return 'resstring';
 "import"                return 'resimport';
 "true"                  return 'restrue';
 "false"                 return 'resfalse';
@@ -79,29 +84,25 @@
 "import"                return 'resimport';
 
 /* Espacios en blanco */
-[ \r\t]+                  {}
-\n                  {}
-"//".*
-[/][*][^*]*[*]+([^/*][^*]*[*]+)*[/]
+[ \r\t\n]+                  {}
 
-[0-9]+"."[0-9]+\b             			 return 'decimal';
+"'"[^]"'"                                  return 'caracter';
+[0-9]+"."[0-9]+\b          			     return 'decimal';
 [0-9]+\b                   			     return 'entero';
-([a-zA-Z"_"])[a-z0-9A-Z"_""ñ""Ñ"]*       return 'id';
-[\'][^][\']                              return 'caracter';
-([\"](\\\"|[^\"])*[^\\][^\"])|[^\"][^\"] return 'cadena';
+([\"]("\\\""|[^"])*[^\\][\"])|[\"][\"]        return 'cadena';
+([a-zA-Z""])[a-z0-9A-Z"""ñ""Ñ"]*             return 'id';
+//([\"](("\\\"")|[^\"])*[^\\][\"])|[\"][\"]    return 'cadena';
 
 <<EOF>>                 return 'EOF';
 
-.                       { try{ globerrores.push(new Error('LEXICO', yytext, yylloc.first_line, yylloc.first_column));  }catch(e){}}
+.                       { try{ globerrores.push(new Error(yytext, 'LEXICO', yylloc.first_line, yylloc.first_column));  }catch(e){}}
 /lex
 
 /* Asociación de operadores y precedencia */
 
 %right igual
-//%right interrogacion
 %left incremento
 %left decremento
-//%left xor
 %left or
 %left and
 %left identico, diferente, referencias
@@ -131,7 +132,6 @@
 ini
 	: RCLASS EOF { $$ = $1; globresults.push( $1 ); }  
      | EOF
-    	| error { try{ globerrores.push(new Error('SINTACTICO', yytext, @1.first_line, @1.first_column)); }catch(e){} }
     //| error {console.log(yytext);}
 ;            
 
@@ -140,39 +140,40 @@ IMPORTS
     |IMPORTS IMPORTD { $$ = $1 + "<li><span class=\"caret\">IMPORT</span>\n<ul class=\"nested\">\n" + $2; }
 ;
 
+CLASSES
+    :CLASSD { $$ = "<li><span class=\"caret\">CLASS</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n"; }
+    |CLASSES CLASSD { $$ = $1 + "<li><span class=\"caret\">CLASS</span>\n<ul class=\"nested\">\n" + $2 + "</ul>\n</li>\n";; }
+;
+
 IMPORTD
     :resimport id puntocoma { $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n</ul>\n</li>\n";}
 ;
 
 CLASSD
-    :resclass id corchetea INSTRUCTIONSG corchetec { for(var i = 0 ; i < globresultsFVC.length; i++){globresultsFVC[i].PARENT += "class: " + $2 + " ";} $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n" + "<li><span class=\"caret\">CONTENIDO</span>\n<ul class=\"nested\">\n" + $4 + "</ul>\n</li>\n" + "<li>"+ $5 +"</li>\n"; globresultsFVC.unshift({TIPO: "class", VALUE: $2, PARENT: "class"})}
-;
+    :resclass id corchetea INSTRUCTIONSG corchetec { for(var i = 0 ; i < temp.length; i++){temp[i].PARENT += "class: " + $2 + " ";} $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n" + "<li><span class=\"caret\">CONTENIDO</span>\n<ul class=\"nested\">\n" + $4 + "</ul>\n</li>\n" + "<li>"+ $5 +"</li>\n"; temp.unshift({TIPO: "class", VALUE: $2, PARENT: "class"}); for(var i = 0; i < temp.length; i++){globresultsFVC.push(temp[i]);} temp = []; };
 
 RCLASS
-    :IMPORTS CLASSD { $$ = "<li><span class=\"caret\">IMPORTS</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n" + "<li><span class=\"caret\">CLASS</span>\n<ul class=\"nested\">\n" + $2 + "</ul>\n</li>\n";}
-    |CLASSD {$$ = "<li><span class=\"caret\">CLASS</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n";}
+     :IMPORTS CLASSES { $$ = "<li><span class=\"caret\">IMPORTS</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n" + $2;}
+     |CLASSES { $$ = $1;}
+     | error { try{ globerrores.push(new Error(yytext, 'SINTACTICO', @1.first_line, @1.first_column)); }catch(e){} /*console.log(yytext);*/}
 ;
 
 INSTRUCTIONSG
 	: INSTRUCTIONSG INSTRUCTIONG { $$ = $1 + $2; }
 	| INSTRUCTIONG { $$ = $1; }
+     | error { try{ globerrores.push(new Error(yytext, 'SINTACTICO', @1.first_line, @1.first_column)); }catch(e){} /*console.log(yytext);*/}
 ;
 
 INSTRUCTIONG
 	: FUNCTION { $$ = "<li><span class=\"caret\">FUNCION</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n" }
-    | DECLARATION SEMICOLON {$$ = "<li><span class=\"caret\">DECLARACION</span>\n<ul class=\"nested\">\n" + $1 + "<li>"+ $2 +"</li>\n</ul>\n</li>\n";}
-;
-
-SEMICOLON
-     : puntocoma{}
-     | {}
+     | DECLARATION puntocoma {$$ = "<li><span class=\"caret\">DECLARACION</span>\n<ul class=\"nested\">\n" + $1 + "<li>"+ $2 +"</li>\n</ul>\n</li>\n"; temp[temp.length-1].ENTORNO = "g";}
 ;
 
 FUNCTION
-    : TYPE id parenta LISTAPARAMETROS parentc BLOCK { for(var i = 0 ; i < globresultsFVC.length; i++){globresultsFVC[i].PARENT += "funcion: " + $2 + " ";} $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n" + "<li><span class=\"caret\">PARAMETROS</span>\n<ul class=\"nested\">\n" + $4 + "</ul>\n</li>\n" + "<li>"+ $5 +"</li>\n" + "<li><span class=\"caret\">CUERPO</span>\n<ul class=\"nested\">\n" + $6 + "</ul>\n</li>\n"; globresultsFVC.unshift({TIPO: "funcion", VALUE: "Tipo: " + $1 + " Nombre: " + $2 + " Parametros: " +  $4, PARENT: "", NOMBRE: $2});}
-    | resvoid id parenta LISTAPARAMETROS parentc BLOCK { for(var i = 0 ; i < globresultsFVC.length; i++){globresultsFVC[i].PARENT += "funcion: " + $2 + " ";} $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n" + "<li><span class=\"caret\">PARAMETROS</span>\n<ul class=\"nested\">\n" + $4 + "</ul>\n</li>\n" + "<li>"+ $5 +"</li>\n" + "<li><span class=\"caret\">CUERPO</span>\n<ul class=\"nested\">\n" + $6 + "</ul>\n</li>\n"; globresultsFVC.unshift({TIPO: "funcion", VALUE: "Tipo: " + $1 + " Nombre: " + $2 + " Parametros: " + $4, PARENT: "", NOMBRE: $2});}
-    | TYPE id parenta parentc BLOCK{ for(var i = 0 ; i < globresultsFVC.length; i++){globresultsFVC[i].PARENT += "funcion: " + $2 + " ";} $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n" + "<li>"+ $4 +"</li>\n" + "<li><span class=\"caret\">CUERPO</span>\n<ul class=\"nested\">\n" + $5 + "</ul>\n</li>\n"; globresultsFVC.unshift({TIPO: "funcion", VALUE: "Tipo: " + $1 + " Nombre: " + $2, PARENT: "", NOMBRE: $2}); }
-    | resvoid id parenta parentc BLOCK { for(var i = 0 ; i < globresultsFVC.length; i++){globresultsFVC[i].PARENT += "funcion: " + $2 + " ";} $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n" + "<li>"+ $4 +"</li>\n" + "<li><span class=\"caret\">CUERPO</span>\n<ul class=\"nested\">\n" + $5 + "</ul>\n</li>\n"; globresultsFVC.unshift({TIPO: "funcion", VALUE: "Tipo: " + $1 + " Nombre: " + $2, PARENT: "", NOMBRE: $2}); }
+    : TYPE id parenta LISTAPARAMETROS parentc BLOCK { for(var i = 0 ; i < temp.length; i++){ if((temp[i].TIPO == "variable" || temp[i].TIPO == "return") && temp[i].ENTORNO == "f"+ $2){temp[i].PARENT += "funcion: " + $2 + " "; temp[i].ENTORNO = "fa";} } $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n" + "<li><span class=\"caret\">PARAMETROS</span>\n<ul class=\"nested\">\n" + $4 + "</ul>\n</li>\n" + "<li>"+ $5 +"</li>\n" + "<li><span class=\"caret\">CUERPO</span>\n<ul class=\"nested\">\n" + $6 + "</ul>\n</li>\n"; temp.push({TIPO: "funcion", VALUE: "Tipo: " + $1 + " Nombre: " + $2 + " Parametros: " +  $4, PARENT: "", NOMBRE: $2});}
+    | resvoid id parenta LISTAPARAMETROS parentc BLOCK { for(var i = 0 ; i < temp.length; i++){if((temp[i].TIPO == "variable" || temp[i].TIPO == "return") && temp[i].ENTORNO == "f"+ $2){temp[i].PARENT += "funcion: " + $2 + " "; temp[i].ENTORNO = "fa";}} $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n" + "<li><span class=\"caret\">PARAMETROS</span>\n<ul class=\"nested\">\n" + $4 + "</ul>\n</li>\n" + "<li>"+ $5 +"</li>\n" + "<li><span class=\"caret\">CUERPO</span>\n<ul class=\"nested\">\n" + $6 + "</ul>\n</li>\n"; temp.push({TIPO: "funcion", VALUE: "Tipo: " + $1 + " Nombre: " + $2 + " Parametros: " + $4, PARENT: "", NOMBRE: $2});}
+    | TYPE id parenta parentc BLOCK{ for(var i = 0 ; i < temp.length; i++){if((temp[i].TIPO == "variable" || temp[i].TIPO == "return") && temp[i].ENTORNO == "f"+ $2){temp[i].PARENT += "funcion: " + $2 + " "; temp[i].ENTORNO = "fa";}} $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n" + "<li>"+ $4 +"</li>\n" + "<li><span class=\"caret\">CUERPO</span>\n<ul class=\"nested\">\n" + $5 + "</ul>\n</li>\n"; temp.push({TIPO: "funcion", VALUE: "Tipo: " + $1 + " Nombre: " + $2, PARENT: "", NOMBRE: $2}); }
+    | resvoid id parenta parentc BLOCK { for(var i = 0 ; i < temp.length; i++){if((temp[i].TIPO == "variable" || temp[i].TIPO == "return") && temp[i].ENTORNO == "f"+ $2){temp[i].PARENT += "funcion: " + $2 + " "; temp[i].ENTORNO = "fa";}} $$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $3 +"</li>\n" + "<li>"+ $4 +"</li>\n" + "<li><span class=\"caret\">CUERPO</span>\n<ul class=\"nested\">\n" + $5 + "</ul>\n</li>\n"; temp.push({TIPO: "funcion", VALUE: "Tipo: " + $1 + " Nombre: " + $2, PARENT: "", NOMBRE: $2}); }
 ;
 
 TYPE
@@ -180,6 +181,7 @@ TYPE
      | resdouble {$$ = $1;}
      | resboolean {$$ = $1;}
      | reschar {$$ = $1;}
+     | resstring {$$ = $1;}
 ;
 
 LISTAPARAMETROS
@@ -188,8 +190,8 @@ LISTAPARAMETROS
 ;
 
 DECLARATION
-     : TYPE LISTID igual EXP { $$ = "<li>"+ $1 +"</li>\n" + $2 + "<li>"+ $3 +"</li>\n" + $4; var vars = $2.split(","); for(var i = 0 ; i < vars.length ; i++){globresultsFVC.unshift({TIPO: "variable", VALUE: "Tipo: " + $1 + " Nombre: " + vars[i] + " Value: " + $4, PARENT: ""});} }
-     | TYPE LISTID { $$ = "<li>"+ $1 +"</li>\n" + $2 ; var vars = $2.split(","); for(var i = 0 ; i < vars.length ; i++){globresultsFVC.unshift({TIPO: "variable", VALUE: "Tipo: " + $1 + " Nombre: " + vars[i], PARENT: ""});} }
+     : TYPE LISTID igual EXP { $$ = "<li>"+ $1 +"</li>\n" + $2 + "<li>"+ $3 +"</li>\n" + $4; var vars = $2.split(","); for(var i = 0 ; i < vars.length ; i++){temp.push({TIPO: "variable", VALUE: "Tipo: " + $1 + " Nombre: " + vars[i] + " Value: " + $4, PARENT: "", ENTORNO: "f"});} }
+     | TYPE LISTID { $$ = "<li>"+ $1 +"</li>\n" + $2 ; var vars = $2.split(","); for(var i = 0 ; i < vars.length ; i++){temp.push({TIPO: "variable", VALUE: "Tipo: " + $1 + " Nombre: " + vars[i], PARENT: "", ENTORNO: "f"});} }
 ;
 
 LISTID
@@ -212,18 +214,20 @@ INSTRUCTIONS
 ;
 
 INSTRUCTION
-    : DECLARATION SEMICOLON {$$ = "<li><span class=\"caret\">DECLARACION</span>\n<ul class=\"nested\">\n" + $1 + "<li>"+ $2 +"</li>\n</ul>\n</li>\n";}
-    | ASSIGNMENT SEMICOLON {$$ = "<li><span class=\"caret\">ASIGNACION</span>\n<ul class=\"nested\">\n" + $1 + "<li>"+ $2 +"</li>\n</ul>\n</li>\n";}
+    : DECLARATION puntocoma {$$ = "<li><span class=\"caret\">DECLARACION</span>\n<ul class=\"nested\">\n" + $1 + "<li>"+ $2 +"</li>\n</ul>\n</li>\n";}
+    | ASSIGNMENT puntocoma {$$ = "<li><span class=\"caret\">ASIGNACION</span>\n<ul class=\"nested\">\n" + $1 + "<li>"+ $2 +"</li>\n</ul>\n</li>\n";}
     | IF { $$ = "<li><span class=\"caret\">SENTENCIA_IF</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n"; }
     | SWITCH {$$ = "<li><span class=\"caret\">SENTENCIA_SWITCH</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n";}
     | WHILE {$$ = "<li><span class=\"caret\">SENTENCIA_WHILE</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n";}
-    | DOWHILE SEMICOLON {$$ = "<li><span class=\"caret\">SENTENCIA_DOWHILE</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n";}
+    | DOWHILE puntocoma {$$ = "<li><span class=\"caret\">SENTENCIA_DOWHILE</span>\n<ul class=\"nested\">\n" + $1 + "<li>"+ $2 +"</li>\n</ul>\n</li>\n";}
     | FOR {$$ = "<li><span class=\"caret\">SENTENCIA_FOR</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n";}
-    | PRINT SEMICOLON {$$ = "<li><span class=\"caret\">SENTENCIA_PRINT</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n";}
-    | resbreak SEMICOLON {$$ = "<li>"+ $1 +"</li>\n";}
-    | rescontinue SEMICOLON {$$ = "<li>"+ $1 +"</li>\n";}
-    | resreturn EXPRT SEMICOLON {$$ = "<li>"+ $1 +"</li>\n";}
-    | resreturn puntocoma {$$ = "<li>"+ $1 +"</li>\n";}
+    | PRINT puntocoma {$$ = "<li><span class=\"caret\">SENTENCIA_PRINT</span>\n<ul class=\"nested\">\n" + $1 + "<li>"+ $2 +"</li>\n</ul>\n</li>\n";}
+    | CALLF puntocoma {$$ = "<li><span class=\"caret\">SENTENCIA_LLAMADA_F</span>\n<ul class=\"nested\">\n" + $1 + "<li>"+ $2 +"</li>\n</ul>\n</li>\n";}
+    | resbreak puntocoma {$$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n";}
+    | rescontinue puntocoma {$$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n";}
+    | resreturn EXP puntocoma {$$ = "<li>"+ $1 +"</li>\n" + $2 + "<li>"+ $3 +"</li>\n"; temp.unshift({TIPO: "return", VALUE: $2 , PARENT: "", ENTORNO: "f"});}
+    | resreturn puntocoma {$$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n"; temp.unshift({TIPO: "return", VALUE: "none" , PARENT: "", ENTORNO: "f"}); }
+     | error { try{ globerrores.push(new Error(yytext, 'SINTACTICO', @1.first_line, @1.first_column)); }catch(e){} /*console.log(yytext);*/}
 ;
 //FALTA THROW
 
@@ -289,7 +293,7 @@ DECINC
 ;
 
 PRINT
-    : resprint PARAMETROUNITARIO {$$ = $1;}
+    : resprint PARAMETROUNITARIO {$$ = $1 + "<li><span class=\"caret\">IMPRIMIR</span>\n<ul class=\"nested\">\n" + $2 + "</ul>\n</li>\n";}
 ;
 
 EXPRT
@@ -346,5 +350,16 @@ EXP3
      | restrue {$$ = "<li>"+ $1 +"</li>\n";}
      | resfalse {$$ = "<li>"+ $1 +"</li>\n";}
      | id {$$ = "<li>"+ $1 +"</li>\n";}
+     | CALLF {$$ = "<li><span class=\"caret\">LLAMADA_FUNCION</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n";}
 ;
-   
+
+CALLF
+     :id parenta PARAMETERS parentc { if($3 == "none"){$$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li>"+ $4 +"</li>\n";}else{$$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + "<li><span class=\"caret\">PARAMETROS</span>\n<ul class=\"nested\">\n" + $3 + "</ul>\n</li>\n" + "<li>"+ $4 +"</li>\n";}}
+;
+
+PARAMETERS
+     :PARAMETERS coma EXP   { if($1 == "none"){$$ = "<li>"+ $2 +"</li>\n" + $3;}else{$$ = $1 + "<li>"+ $2 +"</li>\n" + $3;}}
+     |EXP { $$ = $1; }
+     |    { $$ = "none";}
+;
+
