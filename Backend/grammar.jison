@@ -90,7 +90,7 @@
 [0-9]+"."[0-9]+\b          			     return 'decimal';
 [0-9]+\b                   			     return 'entero';
 ([\"]("\\\""|[^"])*[^\\][\"])|[\"][\"]        return 'cadena';
-([a-zA-Z""])[a-z0-9A-Z"""ñ""Ñ"]*             return 'id';
+([a-zA-Z"_"])[a-z0-9A-Z"_""ñ""Ñ"]*             return 'id';
 //([\"](("\\\"")|[^\"])*[^\\][\"])|[\"][\"]    return 'cadena';
 
 <<EOF>>                 return 'EOF';
@@ -232,7 +232,12 @@ INSTRUCTION
 //FALTA THROW
 
 ASSIGNMENT
-    : id igual EXP {$$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n" + $3;}
+    : id CONTENTAS {$$ = "<li>"+ $1 +"</li>\n" + $2;}
+;
+
+CONTENTAS
+     :igual EXP {$$ = "<li>"+ $1 +"</li>\n" + $2;}
+     |DECINC {$$ = "<li>"+ $1 +"</li>\n"}
 ;
 
 PARAMETROUNITARIO
@@ -258,7 +263,7 @@ IFF
 ;
 
 SWITCH
-     : resswitch PARAMETROUNITARIO corchetea CASES DEFAULT corchetec {$$ = "<li><span class=\"caret\">CONDICIONES</span>\n<ul class=\"nested\">\n" + $2 + "</ul>\n</li>\n" + "<li>"+ $3 +"</li>\n";}
+     : resswitch PARAMETROUNITARIO corchetea CASES DEFAULT corchetec {$$ = "<li><span class=\"caret\">CONDICIONES</span>\n<ul class=\"nested\">\n" + $2 + "</ul>\n</li>\n" + "<li>"+ $3 +"</li>\n" + $4 + $5 + "<li>"+ $6 +"</li>\n";}
 ;
 
 //"<li><span class=\"caret\">EXPRESION</span>\n<ul class=\"nested\">\n" + $2 + "</ul>\n</li>"
@@ -340,8 +345,8 @@ EXP2
 ;
 
 EXP3
-     : decimal {$$ = "<li>"+ $1 +"</li>\n";}
-     | entero {$$ = "<li>"+ $1 +"</li>\n";}
+     : decimal DECINCEXP {$$ = "<li>"+ $1 +"</li>\n" + $2;}
+     | entero DECINCEXP {$$ = "<li>"+ $1 +"</li>\n" + $2;}
      | resta decimal {$$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n";}
      | resta entero {$$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n";}
      | parenta EXP parentc {$$ = "<li>"+ $1 +"</li>\n" + $2 + "<li>"+ $3 +"</li>\n";}
@@ -349,8 +354,14 @@ EXP3
      | caracter {$$ = "<li>"+ $1 +"</li>\n";}
      | restrue {$$ = "<li>"+ $1 +"</li>\n";}
      | resfalse {$$ = "<li>"+ $1 +"</li>\n";}
-     | id {$$ = "<li>"+ $1 +"</li>\n";}
+     | id DECINCEXP {$$ = "<li>"+ $1 +"</li>\n" + $2;}
      | CALLF {$$ = "<li><span class=\"caret\">LLAMADA_FUNCION</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n";}
+;
+
+DECINCEXP
+     :incremento {$$ = "<li>"+ $1 +"</li>\n";}
+     |decremento {$$ = "<li>"+ $1 +"</li>\n";}
+     | {}
 ;
 
 CALLF

@@ -188,33 +188,6 @@ function DescargarArchivo(){
     var contenido=ta.value;//texto de vent actual
 
     download("file_"+get_vent(), contenido);
-    /*
-    //formato para guardar el archivo
-    var hoy=new Date();
-    var dd=hoy.getDate();
-    var mm=hoy.getMonth()+1;
-    var yyyy=hoy.getFullYear();
-    var HH=hoy.getHours();
-    var MM=hoy.getMinutes();
-    var formato=get_vent().replace("textarea","")+"_"+dd+"_"+mm+"_"+yyyy+"_"+HH+"_"+MM;
-
-    var nombre="Archivo"+formato+".coline";//nombre del archivo
-    var file=new Blob([contenido], {type: 'text/plain'});
-
-    if(window.navigator.msSaveOrOpenBlob){
-        window.navigator.msSaveOrOpenBlob(file, nombre);
-    }else{
-        var a=document.createElement("a"),url=URL.createObjectURL(file);
-        a.href=url;
-        a.download=nombre;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(function(){
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);  
-        },0); 
-    }
-    */
 }
 
 function download(filename, text) {
@@ -266,15 +239,24 @@ function send_request()
 
             if(data1 == null)
             {
+                aux_cont = 1;
                 data1 = data;
                 agregar_ast(data.AST);
+                reportsfunction = "";
+                reportsclass = "";
+                reportsvars = "";
             }
             else
             {
+                aux_cont = 2;
                 data2 = data;
                 llenar_arreglos(data1.VARS, data2.VARS);
+                reportsclass +="</table>\n";
+                reportsfunction +="</table>\n";
+                reportsvars +="</table>\n";
+
             }
-            
+            crear_reporte_errores(data.ERROR);
         }else{
             alert("Error en la conexion:" + status)
         }
@@ -284,12 +266,6 @@ function send_request()
 
 function agregar_ast(add_ast)
 {
-    if(aux_cont == 1)
-        return;
-    else if(aux_cont == 2)
-        aux_cont = 0;
-    aux_cont++;
-
     document.getElementById("arbol").innerHTML = "<ul>"+ add_ast +"</ul>";
 
     var toggler = document.getElementsByClassName("caret");
@@ -486,44 +462,18 @@ function exixte_parent(str, str2)
     return false;
 }
 
-function crear_reporte_clases()
-{
-    if(reportsclass != "")
-    {
-        reportsclass +="</table>\n";
-        download("reporte_copia_clase.html", reportsclass);
-        reportsclass = "";
-    }
-}
-
-function crear_reporte_funciones()
-{
-    if(reportsfunction != "")
-    {
-        reportsfunction +="</table>\n";
-        download("reporte_copia_Function.html", reportsfunction);
-        reportsfunction = "";
-    }
-}
-
-function crear_reporte_variables()
-{
-    if(reportsvars != "")
-    {
-        reportsvars +="</table>\n";
-        download("reporte_copia_variables.html", reportsvars);
-        reportsvars = "";
-    }
-}
-
 function crear_reporte_errores(errores)
 {
     var rep_error = "<table>\n<tr>\n<th>Tipo Error</th>\n<th>Columna</th>\n<th>Linea</th>\n<th>Descripcion</th>\n</tr>\n";
     for(var i = 0 ; i < errores.length ; i++)
     {
-        rep_error += "<tr>\n<td>"+ errores[i].TYPE +"</td>\n<td>"+ errores[i].COLUMN +"</td>\n"+"</td>\n<td>"+ errores[i].ROW +"</td>\n"+"</td>\n<td>"+ errores[i].VALUE +"</td>\n";
+        rep_error += "<tr>\n<td>"+ errores[i].type +"</td>\n<td>"+ errores[i].column +"</td>\n"+"</td>\n<td>"+ errores[i].row +"</td>\n"+"</td>\n<td>"+ errores[i].value +"</td>\n";
     }
     rep_error += "</table>\n";
+    if(errores.length > 0)
+        download("Errores.html", rep_error);
+    else
+        rep_error = "";
 }
 
 
@@ -558,8 +508,17 @@ function reportes()
 {
     if(aux_cont >= 2)
     {
-        crear_reporte_variables();
-        crear_reporte_funciones();
-        crear_reporte_clases();
+        if(reportsclass != "")
+        {
+            download("reporte_copia_clase.html", reportsclass);
+        }
+        if(reportsfunction != "")
+        {
+            download("reporte_copia_Function.html", reportsfunction);
+        }
+        if(reportsvars != "")
+        {
+            download("reporte_copia_variables.html", reportsvars);
+        }
     }
 }
