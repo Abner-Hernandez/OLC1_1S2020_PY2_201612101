@@ -190,7 +190,7 @@ LISTAPARAMETROS
 ;
 
 DECLARATION
-     : TYPE LISTID igual EXP { $$ = "<li>"+ $1 +"</li>\n" + $2 + "<li>"+ $3 +"</li>\n" + $4; var vars = $2.split(","); for(var i = 0 ; i < vars.length ; i++){temp.push({TIPO: "variable", VALUE: "Tipo: " + $1 + " Nombre: " + vars[i] + " Value: " + $4, PARENT: "", ENTORNO: "f"});} }
+     : TYPE LISTID igual EXPRT { $$ = "<li>"+ $1 +"</li>\n" + $2 + "<li>"+ $3 +"</li>\n" + $4; var vars = $2.split(","); for(var i = 0 ; i < vars.length ; i++){temp.push({TIPO: "variable", VALUE: "Tipo: " + $1 + " Nombre: " + vars[i] + " Value: " + $4, PARENT: "", ENTORNO: "f"});} }
      | TYPE LISTID { $$ = "<li>"+ $1 +"</li>\n" + $2 ; var vars = $2.split(","); for(var i = 0 ; i < vars.length ; i++){temp.push({TIPO: "variable", VALUE: "Tipo: " + $1 + " Nombre: " + vars[i], PARENT: "", ENTORNO: "f"});} }
 ;
 
@@ -236,7 +236,7 @@ ASSIGNMENT
 ;
 
 CONTENTAS
-     :igual EXP {$$ = "<li>"+ $1 +"</li>\n" + $2;}
+     :igual EXPRT {$$ = "<li>"+ $1 +"</li>\n" + $2;}
      |DECINC {$$ = "<li>"+ $1 +"</li>\n"}
 ;
 
@@ -308,7 +308,7 @@ EXPRT
 
 EXPRT2
 	: EXPRT2 and EXPRT2 {$$ = $1 + "<li>"+ $2 +"</li>\n" + $3;}
-    | EXPR {$$ = $1;}
+     | EXPR {$$ = $1;}
 ;
 //-----------------------------------------------------------------------------------------------------------
 
@@ -345,23 +345,23 @@ EXP2
 ;
 
 EXP3
-     : decimal DECINCEXP {$$ = "<li>"+ $1 +"</li>\n" + $2;}
-     | entero DECINCEXP {$$ = "<li>"+ $1 +"</li>\n" + $2;}
+     : decimal DECINCEXP { if($2 == "none"){$$ = "<li>"+ $1 +"</li>\n"}else{$$ = "<li>"+ $1 +"</li>\n" + $2;}}
+     | entero DECINCEXP {if($2 == "none"){$$ = "<li>"+ $1 +"</li>\n"}else{$$ = "<li>"+ $1 +"</li>\n" + $2;}}
      | resta decimal {$$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n";}
      | resta entero {$$ = "<li>"+ $1 +"</li>\n" + "<li>"+ $2 +"</li>\n";}
-     | parenta EXP parentc {$$ = "<li>"+ $1 +"</li>\n" + $2 + "<li>"+ $3 +"</li>\n";}
+     | parenta EXPRT parentc {$$ = "<li>"+ $1 +"</li>\n" + $2 + "<li>"+ $3 +"</li>\n";}
      | cadena {$$ = "<li>"+ $1 +"</li>\n";}
      | caracter {$$ = "<li>"+ $1 +"</li>\n";}
      | restrue {$$ = "<li>"+ $1 +"</li>\n";}
      | resfalse {$$ = "<li>"+ $1 +"</li>\n";}
-     | id DECINCEXP {$$ = "<li>"+ $1 +"</li>\n" + $2;}
+     | id DECINCEXP {if($2 == "none"){$$ = "<li>"+ $1 +"</li>\n"}else{$$ = "<li>"+ $1 +"</li>\n" + $2;}}
      | CALLF {$$ = "<li><span class=\"caret\">LLAMADA_FUNCION</span>\n<ul class=\"nested\">\n" + $1 + "</ul>\n</li>\n";}
 ;
 
 DECINCEXP
      :incremento {$$ = "<li>"+ $1 +"</li>\n";}
      |decremento {$$ = "<li>"+ $1 +"</li>\n";}
-     | {}
+     | {$$ = "none"}
 ;
 
 CALLF
@@ -369,8 +369,10 @@ CALLF
 ;
 
 PARAMETERS
-     :PARAMETERS coma EXP   { if($1 == "none"){$$ = "<li>"+ $2 +"</li>\n" + $3;}else{$$ = $1 + "<li>"+ $2 +"</li>\n" + $3;}}
-     |EXP { $$ = $1; }
+     :PARAMETERS coma EXPRT   { if($1 == "none"){$$ = "<li>"+ $2 +"</li>\n" + $3;}else{$$ = $1 + "<li>"+ $2 +"</li>\n" + $3;}}
+     |EXPRT { $$ = $1; }
      |    { $$ = "none";}
 ;
+
+//     | parenta EXPR parentc {$$ = "<li>"+ $1 +"</li>\n" + $2 + "<li>"+ $3 +"</li>\n";}
 

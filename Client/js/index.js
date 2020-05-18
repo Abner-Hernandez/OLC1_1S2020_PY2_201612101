@@ -12,8 +12,8 @@ var varsfunction1 = [];
 var vars1 = [];
 var returns1 = [];
 
-var errores1 = [];
-var errores2 = [];
+var ast1 = "";
+var ast2 = "";
 var reportsclass = "";
 var reportsfunction = "";
 var reportsvars = "";
@@ -229,9 +229,9 @@ function send_request()
                 varsfunction1 = [];
                 vars1 = [];
                 returns1 = [];
+                ast1 = "";
+                ast2 = "";
                 
-                errores1 = [];
-                errores2 = [];
                 reportsclass = "";
                 reportsfunction = "";
                 reportsvars = "";            
@@ -242,6 +242,7 @@ function send_request()
                 aux_cont = 1;
                 data1 = data;
                 agregar_ast(data.AST);
+                ast1 = data.AST;
                 reportsfunction = "";
                 reportsclass = "";
                 reportsvars = "";
@@ -250,6 +251,7 @@ function send_request()
             {
                 aux_cont = 2;
                 data2 = data;
+                ast2 = data.AST;
                 llenar_arreglos(data1.VARS, data2.VARS);
                 reportsclass +="</table>\n";
                 reportsfunction +="</table>\n";
@@ -520,5 +522,16 @@ function reportes()
         {
             download("reporte_copia_variables.html", reportsvars);
         }
+    }
+}
+
+function changeAst(number)
+{
+    if(number == "first" && ast1 != "")
+    {
+        agregar_ast(ast1);
+    }else if(ast2 != "")
+    {
+        agregar_ast(ast2);
     }
 }
